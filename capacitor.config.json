@@ -1,0 +1,9 @@
+{
+  "appId": "com.inheritance.pro",
+  "appName": "نظام المواريث",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {}
+}
