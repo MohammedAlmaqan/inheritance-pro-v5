@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">نظام المواريث</string>
+    <string name="title_activity_main">نظام المواريث</string>
+    <string name="package_name">com.inheritance.pro</string>
+    <string name="custom_url_scheme">com.inheritance.pro</string>
+</resources>
