@@ -5,7 +5,8 @@
 
 import { calculateInheritance } from './inheritance-engine';
 import { FIQH_DATABASE } from './fiqh-database';
-import type { EstateData, HeirsData, CalculationResult, Madhab } from './types';
+import type { EstateData, HeirsData, CalculationResult } from './types';
+import type { Madhab } from './fiqh-database';
 
 export interface MadhhabComparison {
   madhabs: {
@@ -32,7 +33,7 @@ export function compareAllMadhabs(
 ): MadhhabComparison {
   const madhabs: Madhab[] = ['hanafi', 'maliki', 'shafii', 'hanbali'];
 
-  const results: Record<string, CalculationResult> = {};
+  const results: Record<Madhab, CalculationResult> = {} as Record<Madhab, CalculationResult>;
   for (const madhab of madhabs) {
     results[madhab] = calculateInheritance(madhab, estate, heirs);
   }
@@ -56,11 +57,11 @@ export function compareAllMadhabs(
 
     // Compare heir amounts across madhabs
     heirNames.forEach((heirName) => {
-      const amounts: Record<string, number> = {};
+      const amounts: Record<Madhab, number> = {} as Record<Madhab, number>;
 
       madhabs.forEach((m) => {
         const share = results[m].shares.find((s) => s.name === heirName);
-        amounts[m] = share ? share.amount || 0 : 0;
+        amounts[m] = share ? (share.shares || 0) : 0;
       });
 
       // Check if amounts differ
@@ -70,13 +71,13 @@ export function compareAllMadhabs(
         const hanafiAmount = amounts['hanafi'] || 0;
         madhabs.forEach((m) => {
           if (m !== 'hanafi' && amounts[m] !== hanafiAmount) {
-            const madhabhData = (FIQH_DATABASE.madhabs as any)[m];
+            const madhabhData = FIQH_DATABASE.madhabs[m];
             const madhabhName = madhabhData?.name || m;
             differences.push({
               madhab: madhabhName,
               heir: heirName,
-              amount: Math.abs(amounts[m] - hanafiAmount),
-              percentage: hanafiAmount > 0 ? Math.abs(amounts[m] - hanafiAmount) / hanafiAmount : 0,
+              amount: Math.abs((amounts[m] || 0) - hanafiAmount),
+              percentage: hanafiAmount > 0 ? Math.abs((amounts[m] || 0) - hanafiAmount) / hanafiAmount : 0,
             });
           }
         });
@@ -113,10 +114,10 @@ export function getMadhhabDifferences(
 
   const differences = new Map<string, { madhab1: number; madhab2: number; difference: number }>();
 
-  result1.shares.forEach((share1) => {
-    const share2 = result2.shares.find((s) => s.name === share1.name);
-    const amount1 = share1.amount || 0;
-    const amount2 = share2 ? share2.amount || 0 : 0;
+  result1.shares.forEach((share1: any) => {
+    const share2 = result2.shares.find((s: any) => s.name === share1.name);
+    const amount1 = share1.fraction.toDecimal() * result1.netEstate;
+    const amount2 = share2 ? share2.fraction.toDecimal() * result2.netEstate : 0;
 
     if (amount1 !== amount2) {
       differences.set(share1.name, {
@@ -135,8 +136,8 @@ export function getMadhhabDifferences(
  */
 export function getMadhhabPercentageDifferences(
   comparison: MadhhabComparison
-): Record<string, Record<string, number>> {
-  const percentages: Record<string, Record<string, number>> = {
+): Record<Madhab, Record<string, number>> {
+  const percentages: Record<Madhab, Record<string, number>> = {
     hanafi: {},
     maliki: {},
     shafii: {},
@@ -146,9 +147,9 @@ export function getMadhhabPercentageDifferences(
   const madhabs: Madhab[] = ['hanafi', 'maliki', 'shafii', 'hanbali'];
 
   madhabs.forEach((m) => {
-    const result = comparison.madhabs[m as keyof typeof comparison.madhabs];
+    const result = comparison.madhabs[m];
     if (result && result.success) {
-      result.shares.forEach((share) => {
+      result.shares.forEach((share: any) => {
         percentages[m][share.name] = share.fraction.toDecimal() * 100;
       });
     }
@@ -168,14 +169,15 @@ export function checkHeirVariations(
   const madhabs: Madhab[] = ['hanafi', 'maliki', 'shafii', 'hanbali'];
 
   madhabs.forEach((m) => {
-    const result = comparison.madhabs[m as keyof typeof comparison.madhabs];
+    const result = comparison.madhabs[m];
     if (result) {
       const share = result.shares.find((s) => s.name === heirName);
 
       if (share) {
+        const amount = share.fraction.toDecimal() * result.netEstate;
         variations.push({
           madhab: m,
-          amount: share.amount || 0,
+          amount: amount,
           percentage: share.fraction.toDecimal() * 100,
           treatment: share.reason,
         });
@@ -191,8 +193,8 @@ export function checkHeirVariations(
  */
 export function getMadhhabSummary(
   comparison: MadhhabComparison
-): Record<string, { netEstate: number; totalDistributed: number; heirCount: number }> {
-  const summary: Record<string, { netEstate: number; totalDistributed: number; heirCount: number }> = {
+): Record<Madhab, { netEstate: number; totalDistributed: number; heirCount: number }> {
+  const summary: Record<Madhab, { netEstate: number; totalDistributed: number; heirCount: number }> = {
     hanafi: { netEstate: 0, totalDistributed: 0, heirCount: 0 },
     maliki: { netEstate: 0, totalDistributed: 0, heirCount: 0 },
     shafii: { netEstate: 0, totalDistributed: 0, heirCount: 0 },
@@ -206,7 +208,11 @@ export function getMadhhabSummary(
     if (result.success) {
       summary[m].netEstate = result.netEstate;
       summary[m].heirCount = result.shares.length;
-      summary[m].totalDistributed = result.shares.reduce((sum, share) => sum + (share.amount || 0), 0);
+      // Calculate total distributed from fractions
+      summary[m].totalDistributed = result.shares.reduce((sum: number, share: any) => {
+        const amount = share.fraction.toDecimal() * result.netEstate;
+        return sum + amount;
+      }, 0);
     }
   });
 
@@ -223,14 +229,15 @@ export function formatMadhhabComparison(comparison: MadhhabComparison): string {
 
   madhabs.forEach((m) => {
     const result = comparison.madhabs[m];
-    const madhab = (FIQH_DATABASE.madhabs as any)[m];
+    const madhab = FIQH_DATABASE.madhabs[m];
 
     output += `${madhab.icon} ${madhab.name}\n`;
     output += `صافي التركة: ${result.netEstate.toLocaleString()}\n`;
 
-    result.shares.forEach((share) => {
+    result.shares.forEach((share: any) => {
       const percentage = (share.fraction.toDecimal() * 100).toFixed(2);
-      output += `  • ${share.name}: ${percentage}% (${(share.amount || 0).toLocaleString()})\n`;
+      const amount = share.fraction.toDecimal() * result.netEstate;
+      output += `  • ${share.name}: ${percentage}% (${amount.toLocaleString()})\n`;
     });
 
     output += '\n';
