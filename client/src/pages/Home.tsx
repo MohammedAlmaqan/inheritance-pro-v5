@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { calculateInheritance } from '@/lib/inheritance-engine';
 import { FIQH_DATABASE, Madhab } from '@/lib/fiqh-database';
-import { AlertCircle, Calculator, Download, Printer, CheckCircle } from 'lucide-react';
+import { exportToPDF, downloadCSV, downloadJSON, shareAsText } from '@/lib/pdf-export';
+import { AlertCircle, Calculator, Download, Printer, CheckCircle, FileText, Share2 } from 'lucide-react';
 
 export default function Home() {
   // Local state for error handling and UI
@@ -94,33 +95,35 @@ export default function Home() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!result) return;
+    exportToPDF(result, { title: 'طباعة نتائج الميراث الشرعي' });
   };
 
-  const handleExport = () => {
+  const handleDownloadCSV = () => {
     if (!result || !result.success) return;
-
-    const csv = generateCSV(result);
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
-    element.setAttribute('download', `inheritance-${new Date().toISOString()}.csv`);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    downloadCSV(result, { filename: `inheritance-${new Date().toISOString().split('T')[0]}.csv` });
   };
 
-  const generateCSV = (result: any) => {
-    let csv = 'نظام المواريث الإسلامية\n';
-    csv += `المذهب,${result.madhhabName}\n`;
-    csv += `صافي التركة,${result.netEstate}\n\n`;
-    csv += 'الوارث,الحصة,النسبة,المبلغ,المبلغ للفرد\n';
+  const handleDownloadJSON = () => {
+    if (!result || !result.success) return;
+    downloadJSON(result, { filename: `inheritance-${new Date().toISOString().split('T')[0]}.json` });
+  };
 
-    result.shares.forEach((share: any) => {
-      csv += `${share.name},${share.shares || '-'},${(share.fraction.toDecimal() * 100).toFixed(2)}%,${share.amount || 0},${share.amountPerPerson || 0}\n`;
-    });
-
-    return csv;
+  const handleShare = () => {
+    if (!result || !result.success) return;
+    
+    const text = shareAsText(result);
+    if (navigator.share) {
+      navigator.share({
+        title: 'نتائج الميراث الشرعي',
+        text: text,
+      }).catch(console.error);
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(text).catch(() => {
+        alert('تم نسخ النتائج إلى الحافظة');
+      });
+    }
   };
 
   const handleReset = () => {
@@ -360,14 +363,22 @@ export default function Home() {
                           </div>
                         )}
 
-                        <div className="flex gap-2">
-                          <Button onClick={handlePrint} variant="outline" size="sm" className="flex-1">
+                        <div className="flex gap-2 flex-wrap">
+                          <Button onClick={handlePrint} variant="outline" size="sm" className="flex-1 min-w-20">
                             <Printer className="mr-2 h-4 w-4" />
                             طباعة
                           </Button>
-                          <Button onClick={handleExport} variant="outline" size="sm" className="flex-1">
+                          <Button onClick={handleDownloadCSV} variant="outline" size="sm" className="flex-1 min-w-20">
                             <Download className="mr-2 h-4 w-4" />
-                            تصدير
+                            CSV
+                          </Button>
+                          <Button onClick={handleDownloadJSON} variant="outline" size="sm" className="flex-1 min-w-20">
+                            <FileText className="mr-2 h-4 w-4" />
+                            JSON
+                          </Button>
+                          <Button onClick={handleShare} variant="outline" size="sm" className="flex-1 min-w-20">
+                            <Share2 className="mr-2 h-4 w-4" />
+                            مشاركة
                           </Button>
                         </div>
                       </CardContent>
