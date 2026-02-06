@@ -190,9 +190,9 @@ export async function validateInputAsync(
   const heirsResult = validateHeirs(heirs);
 
   if (!estateResult.success || !heirsResult.success) {
-    const allErrors = [
-      ...(estateResult.success ? [] : estateResult.errors),
-      ...(heirsResult.success ? [] : heirsResult.errors),
+    const allErrors: Array<{ field: string; message: string }> = [
+      ...(estateResult.success ? [] : (estateResult.errors || [])),
+      ...(heirsResult.success ? [] : (heirsResult.errors || [])),
     ];
 
     return {

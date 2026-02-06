@@ -5,8 +5,8 @@
 
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type { EstateData, HeirsData, CalculationResult } from './types';
-import type { Madhab } from './fiqh-database';
+import type { EstateData, HeirsData, CalculationResult } from '@/lib/types';
+import type { Madhab } from '@/lib/fiqh-database';
 
 export interface AppState {
   // Settings
