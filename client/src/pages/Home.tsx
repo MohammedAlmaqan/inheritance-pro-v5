@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { calculateInheritance } from '@/lib/inheritance-engine';
 import { FIQH_DATABASE, Madhab } from '@/lib/fiqh-database';
 import { exportToPDF, downloadCSV, downloadJSON, shareAsText } from '@/lib/pdf-export';
+import { ScenariosDialog } from '@/components/ScenariosDialog';
 import { AlertCircle, Calculator, Download, Printer, CheckCircle, FileText, Share2 } from 'lucide-react';
 
 export default function Home() {
@@ -131,6 +132,16 @@ export default function Home() {
     setErrors([]);
   };
 
+  const handleScenarioSelect = (state: { madhab: Madhab; estate: typeof estate; heirs: typeof heirs }) => {
+    // Apply scenario data to state
+    setMadhab(state.madhab);
+    setEstate(state.estate);
+    setHeirs(state.heirs);
+    setErrors([]);
+    // Clear previous result
+    setResult(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -157,6 +168,9 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Panel */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Quick Start with Scenarios */}
+            <ScenariosDialog onScenarioSelect={handleScenarioSelect} />
+
             {/* Madhab Selection */}
             <Card>
               <CardHeader>
