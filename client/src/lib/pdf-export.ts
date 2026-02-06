@@ -4,6 +4,7 @@
  */
 
 import type { CalculationResult } from '@/lib/types';
+import type { MadhhabComparison } from '@/lib/madhab-comparison';
 
 export interface PDFOptions {
   title?: string;
@@ -353,3 +354,120 @@ export function shareAsText(result: CalculationResult): string {
 
   return text;
 }
+
+export function generateComparisonPDFHTML(comparison: MadhhabComparison, options: PDFOptions = {}): string {
+  const { title = 'مقارنة نتائج الحساب عبر المذاهب الفقهية الأربعة' } = options;
+
+  let html = `<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    body { font-family: 'Traditional Arabic', Arial; direction: rtl; margin: 20px; }
+    h1 { text-align: center; color: #1f2937; }
+    h2 { color: #374151; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: right; }
+    th { background-color: #f3f4f6; font-weight: bold; }
+    .madhab-header { background-color: #e8eaf6; font-weight: bold; }
+    .consistent { color: green; font-weight: bold; }
+    .inconsistent { color: #d97706; font-weight: bold; }
+    .difference { background-color: #fef3c7; }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>`;
+
+  // Summary section
+  html += '<h2>ملخص المقارنة</h2>';
+  html += '<table>';
+  html += '<tr><th>المذهب</th><th>الحالة</th><th>صافي التركة</th><th>عدد الورثة</th></tr>';
+
+  Object.entries(comparison.madhabs).forEach(([_key, result]) => {
+    const status = result.success ? 'نجح' : `فشل: ${result.error}`;
+    html += `<tr>
+      <td class="madhab-header">${result.madhhabName}</td>
+      <td>${status}</td>
+      <td>${result.netEstate.toLocaleString()}</td>
+      <td>${result.shares.length}</td>
+    </tr>`;
+  });
+
+  html += '</table>';
+
+  // Consistency section
+  html += '<h2>التحليل الشامل</h2>';
+  html += `<p><strong>النتيجة:</strong> 
+    <span class="${comparison.consistent ? 'consistent' : 'inconsistent'}">
+      ${comparison.consistent ? 'النتائج متسقة' : 'هناك اختلافات بين المذاهب'}
+    </span>
+  </p>`;
+
+  // Differences section
+  if (comparison.differences.length > 0) {
+    html += '<h2>الاختلافات المكتشفة</h2>';
+    html += '<table>';
+    html += '<tr><th>الوارث</th><th>المذهب</th><th>المبلغ</th><th>النسبة</th></tr>';
+
+    comparison.differences.forEach((diff) => {
+      html += `<tr class="difference">
+        <td>${diff.heir}</td>
+        <td>${diff.madhab}</td>
+        <td>${diff.amount.toLocaleString()}</td>
+        <td>${(diff.percentage * 100).toFixed(2)}%</td>
+      </tr>`;
+    });
+
+    html += '</table>';
+  }
+
+  html += '</body></html>';
+  return html;
+}
+
+export function exportComparisonToPDF(comparison: MadhhabComparison, options: PDFOptions = {}) {
+  const html = generateComparisonPDFHTML(comparison, options);
+  const printWindow = window.open('', '', 'height=600,width=800');
+  if (!printWindow) return;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.print();
+}
+
+export function exportComparisonToJSON(comparison: MadhhabComparison, options: PDFOptions = {}): string {
+  return JSON.stringify(comparison, null, 2);
+}
+
+export function downloadComparisonJSON(comparison: MadhhabComparison, options: PDFOptions = {}) {
+  const json = exportComparisonToJSON(comparison, options);
+  const element = document.createElement('a');
+  element.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(json)}`);
+  element.setAttribute('download', `madhab-comparison-${new Date().toISOString().split('T')[0]}.json`);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+}
+
+export function shareComparisonAsText(comparison: MadhhabComparison): string {
+  let text = 'مقارنة نتائج الحساب عبر المذاهب الفقهية الأربعة\n\n';
+  text += `النتيجة: ${comparison.consistent ? 'متسقة' : 'هناك اختلافات'}\n\n`;
+
+  text += 'ملخص المذاهب:\n';
+  Object.entries(comparison.madhabs).forEach(([_key, result]) => {
+    if (result.success) {
+      text += `${result.madhhabName}: صافي التركة ${result.netEstate.toLocaleString()}, عدد الورثة ${result.shares.length}\n`;
+    }
+  });
+
+  if (comparison.differences.length > 0) {
+    text += `\nالاختلافات المكتشفة (${comparison.differences.length}):\n`;
+    comparison.differences.forEach((diff) => {
+      text += `• ${diff.heir} - ${diff.madhab}: ${diff.amount.toLocaleString()} (${(diff.percentage * 100).toFixed(2)}%)\n`;
+    });
+  }
+
+  return text;
+}
+

@@ -309,13 +309,13 @@ describe('MadhhabComparisonCard', () => {
 
   it('should calculate share amounts correctly', () => {
     const hanafi = consistentComparison.madhabs.hanafi;
-    const totalShares = hanafi.shares.reduce((sum, share) => sum + share.shares, 0);
+    const totalShares = hanafi.shares.reduce((sum, share) => sum + (share.shares || 0), 0);
 
     // Validate that each share has a calculated amount
     expect(totalShares).toBeGreaterThan(0);
     hanafi.shares.forEach((share) => {
-      expect(share.shares).toBeGreaterThan(0);
-      expect(share.shares).toBeLessThan(hanafi.netEstate);
+      expect(share.shares || 0).toBeGreaterThan(0);
+      expect(share.shares || 0).toBeLessThan(hanafi.netEstate);
     });
   });
 

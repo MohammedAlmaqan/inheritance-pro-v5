@@ -5,9 +5,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { MadhhabComparison } from '@/lib/madhab-comparison';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { exportComparisonToPDF, downloadComparisonJSON, shareComparisonAsText } from '@/lib/pdf-export';
+import { CheckCircle2, AlertCircle, Download, FileText, Share2, Printer } from 'lucide-react';
 
 interface MadhhabComparisonCardProps {
   comparison: MadhhabComparison;
@@ -175,6 +177,49 @@ export function MadhhabComparisonCard({ comparison }: MadhhabComparisonCardProps
             </p>
           </div>
         )}
+
+        {/* Export Buttons */}
+        <div className="flex gap-2 flex-wrap pt-4 border-t">
+          <Button 
+            onClick={() => exportComparisonToPDF(comparison)}
+            variant="outline" 
+            size="sm" 
+            className="flex-1 min-w-20"
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            طباعة
+          </Button>
+          <Button 
+            onClick={() => downloadComparisonJSON(comparison)}
+            variant="outline" 
+            size="sm" 
+            className="flex-1 min-w-20"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            JSON
+          </Button>
+          <Button 
+            onClick={() => {
+              const text = shareComparisonAsText(comparison);
+              if (navigator.share) {
+                navigator.share({
+                  title: 'مقارنة المذاهب الفقهية',
+                  text: text,
+                }).catch(console.error);
+              } else {
+                navigator.clipboard.writeText(text).catch(() => {
+                  alert('تم نسخ النتائج إلى الحافظة');
+                });
+              }
+            }}
+            variant="outline" 
+            size="sm" 
+            className="flex-1 min-w-20"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            مشاركة
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
