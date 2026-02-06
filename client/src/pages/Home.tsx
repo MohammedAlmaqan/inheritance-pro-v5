@@ -1,88 +1,96 @@
 import { useState } from 'react';
+import { useAppStore } from '@/stores/appStore';
+import { validateEstate, validateHeirs } from '@/lib/validation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { calculateInheritance } from '@/lib/inheritance-engine';
-import { EstateData, HeirsData } from '@/lib/types';
 import { FIQH_DATABASE, Madhab } from '@/lib/fiqh-database';
-import { AlertCircle, Calculator, Download, Printer } from 'lucide-react';
-
-const INITIAL_HEIRS: HeirsData = {
-  husband: 0,
-  wife: 0,
-  father: 0,
-  mother: 0,
-  grandfather: 0,
-  grandmother_father: 0,
-  grandmother_mother: 0,
-  son: 0,
-  daughter: 0,
-  grandson: 0,
-  granddaughter: 0,
-  full_brother: 0,
-  full_sister: 0,
-  paternal_brother: 0,
-  paternal_sister: 0,
-  maternal_brother: 0,
-  maternal_sister: 0,
-  full_nephew: 0,
-  paternal_nephew: 0,
-  full_uncle: 0,
-  paternal_uncle: 0,
-  full_cousin: 0,
-  paternal_cousin: 0,
-  maternal_uncle: 0,
-  maternal_aunt: 0,
-  paternal_aunt: 0,
-  daughter_son: 0,
-  daughter_daughter: 0,
-  sister_children: 0,
-};
+import { AlertCircle, Calculator, Download, Printer, CheckCircle } from 'lucide-react';
 
 export default function Home() {
-  const [madhab, setMadhab] = useState<Madhab>('shafii');
-  const [estate, setEstate] = useState<EstateData>({
-    total: 100000,
-    funeral: 0,
-    debts: 0,
-    will: 0,
-  });
-  const [heirs, setHeirs] = useState<HeirsData>(INITIAL_HEIRS);
-  const [result, setResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  // Local state for error handling and UI
+  const [errors, setErrors] = useState<string[]>([]);
 
-  const handleEstateChange = (field: keyof EstateData, value: number) => {
-    setEstate((prev) => ({ ...prev, [field]: Math.max(0, value) }));
-  };
+  // Store selectors
+  const madhab = useAppStore((state) => state.madhab);
+  const estate = useAppStore((state) => state.estate);
+  const heirs = useAppStore((state) => state.heirs);
+  const result = useAppStore((state) => state.result);
+  const isCalculating = useAppStore((state) => state.isCalculating);
 
-  const handleHeirChange = (field: keyof HeirsData, value: number) => {
-    setHeirs((prev) => ({ ...prev, [field]: Math.max(0, value) }));
-  };
+  // Store actions
+  const setMadhab = useAppStore((state) => state.setMadhab);
+  const setEstate = useAppStore((state) => state.setEstate);
+  const setHeirs = useAppStore((state) => state.setHeirs);
+  const setResult = useAppStore((state) => state.setResult);
+  const setIsCalculating = useAppStore((state) => state.setIsCalculating);
+  const resetAll = useAppStore((state) => state.resetAll);
+  const addToHistory = useAppStore((state) => state.addToHistory);
 
-  const handleCalculate = () => {
-    setLoading(true);
-    try {
-      const calculationResult = calculateInheritance(madhab, estate, heirs);
-      setResult(calculationResult);
-    } catch (error) {
-      console.error('Error calculating inheritance:', error);
-      setResult({
-        success: false,
-        error: 'حدث خطأ في الحساب',
-      });
-    } finally {
-      setLoading(false);
+  const handleEstateChange = (field: keyof typeof estate, value: number) => {
+    const newEstate = { ...estate, [field]: Math.max(0, value) };
+    setEstate(newEstate);
+
+    // Validate on change
+    const validation = validateEstate(newEstate);
+    if (!validation.success && validation.errors) {
+      setErrors(validation.errors.map((e) => `${e.field}: ${e.message}`));
+    } else {
+      setErrors([]);
     }
   };
 
-  const handleReset = () => {
-    setEstate({ total: 100000, funeral: 0, debts: 0, will: 0 });
-    setHeirs(INITIAL_HEIRS);
-    setResult(null);
+  const handleHeirChange = (field: keyof typeof heirs, value: number) => {
+    const newHeirs = { ...heirs, [field]: Math.max(0, value) };
+    setHeirs(newHeirs);
+
+    // Validate on change
+    const validation = validateHeirs(newHeirs);
+    if (!validation.success && validation.errors) {
+      setErrors(validation.errors.map((e) => `${e.field}: ${e.message}`));
+    } else {
+      setErrors([]);
+    }
+  };
+
+  const handleCalculate = async () => {
+    // Clear previous errors
+    setErrors([]);
+
+    // Validate inputs
+    const estateValidation = validateEstate(estate);
+    const heirsValidation = validateHeirs(heirs);
+
+    if (!estateValidation.success && estateValidation.errors) {
+      setErrors(estateValidation.errors.map((e) => `التركة: ${e.message}`));
+      return;
+    }
+
+    if (!heirsValidation.success && heirsValidation.errors) {
+      setErrors(heirsValidation.errors.map((e) => `الورثة: ${e.message}`));
+      return;
+    }
+
+    setIsCalculating(true);
+    try {
+      const calculationResult = calculateInheritance(madhab, estate, heirs);
+      setResult(calculationResult);
+
+      // Add to history if successful
+      if (calculationResult.success) {
+        addToHistory(calculationResult);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير معروف';
+      setErrors([`خطأ في الحساب: ${errorMessage}`]);
+      setResult(null);
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   const handlePrint = () => {
@@ -115,6 +123,11 @@ export default function Home() {
     return csv;
   };
 
+  const handleReset = () => {
+    resetAll();
+    setErrors([]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -123,6 +136,20 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-2">نظام المواريث الإسلامية</h1>
           <p className="text-lg text-slate-600">حاسبة دقيقة وشاملة لتوزيع الميراث وفقاً للمذاهب الفقهية الأربعة</p>
         </div>
+
+        {/* Error Display */}
+        {errors.length > 0 && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <ul className="mt-2 space-y-1">
+                {errors.map((error: string, idx: number) => (
+                  <li key={idx}>• {error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Panel */}
@@ -135,15 +162,15 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(FIQH_DATABASE.madhabs).map(([key, madhab]) => (
+                  {Object.entries(FIQH_DATABASE.madhabs).map(([key, madhab_option]) => (
                     <Button
                       key={key}
-                      variant={madhab.id === madhab.id ? 'default' : 'outline'}
+                      variant={madhab_option.id === madhab ? 'default' : 'outline'}
                       className="text-right"
-                      onClick={() => setMadhab(madhab.id as Madhab)}
+                      onClick={() => setMadhab(madhab_option.id as Madhab)}
                     >
-                      <span className="mr-2">{madhab.icon}</span>
-                      {madhab.name}
+                      <span className="mr-2">{madhab_option.icon}</span>
+                      {madhab_option.name}
                     </Button>
                   ))}
                 </div>
@@ -260,7 +287,7 @@ export default function Home() {
                     <HeirInput label="العمة" value={heirs.paternal_aunt} onChange={(v) => handleHeirChange('paternal_aunt', v)} />
                     <HeirInput label="ابن البنت" value={heirs.daughter_son} onChange={(v) => handleHeirChange('daughter_son', v)} />
                     <HeirInput label="بنت البنت" value={heirs.daughter_daughter} onChange={(v) => handleHeirChange('daughter_daughter', v)} />
-                    <HeirInput label="أولاد الأخت" value={heirs.sister_children} onChange={(v) => handleHeirChange('sister_children', v)} />
+                    <HeirInput label="أولاد الأخت" value={heirs.sister_children ?? 0} onChange={(v) => handleHeirChange('sister_children', v)} />
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -268,9 +295,9 @@ export default function Home() {
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <Button onClick={handleCalculate} disabled={loading} className="flex-1" size="lg">
+              <Button onClick={handleCalculate} disabled={isCalculating} className="flex-1" size="lg">
                 <Calculator className="mr-2 h-4 w-4" />
-                {loading ? 'جاري الحساب...' : 'احسب الميراث'}
+                {isCalculating ? 'جاري الحساب...' : 'احسب الميراث'}
               </Button>
               <Button onClick={handleReset} variant="outline" size="lg">
                 إعادة تعيين
@@ -284,13 +311,18 @@ export default function Home() {
               <div className="space-y-4">
                 {result.success ? (
                   <>
-                    <Card>
+                    <Card className="border-green-200 bg-green-50">
                       <CardHeader>
-                        <CardTitle>النتائج</CardTitle>
-                        <CardDescription>{result.madhhabName}</CardDescription>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <div>
+                            <CardTitle>النتائج</CardTitle>
+                            <CardDescription>{result.madhhabName}</CardDescription>
+                          </div>
+                        </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="bg-green-50 p-3 rounded-lg">
+                        <div className="bg-white p-3 rounded-lg border border-green-200">
                           <p className="text-sm text-slate-600">صافي التركة</p>
                           <p className="text-2xl font-bold text-green-700">{result.netEstate.toLocaleString()}</p>
                         </div>
@@ -299,7 +331,7 @@ export default function Home() {
                           <h3 className="font-semibold text-slate-900">توزيع الحصص:</h3>
                           <div className="space-y-2 max-h-96 overflow-y-auto">
                             {result.shares.map((share: any, idx: number) => (
-                              <div key={idx} className="bg-slate-50 p-2 rounded text-sm">
+                              <div key={idx} className="bg-white p-2 rounded text-sm border border-green-100">
                                 <div className="flex justify-between mb-1">
                                   <span className="font-medium">{share.name}</span>
                                   <span className="text-green-600">{(share.fraction.toDecimal() * 100).toFixed(2)}%</span>
@@ -317,10 +349,10 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {result.specialCases.length > 0 && (
-                          <div className="bg-blue-50 p-3 rounded-lg">
-                            <h4 className="font-semibold text-blue-900 mb-2">حالات خاصة:</h4>
-                            <ul className="text-sm text-blue-800 space-y-1">
+                        {result.specialCases && result.specialCases.length > 0 && (
+                          <div className="bg-white p-3 rounded-lg border border-green-100">
+                            <h4 className="font-semibold text-slate-900 mb-2">حالات خاصة:</h4>
+                            <ul className="text-sm text-slate-700 space-y-1">
                               {result.specialCases.map((c: any, idx: number) => (
                                 <li key={idx}>• {c.name}: {c.description}</li>
                               ))}
@@ -356,13 +388,13 @@ export default function Home() {
   );
 }
 
-function HeirInput({ label, value, onChange }: { label: string; value: number | undefined; onChange: (v: number) => void }) {
+function HeirInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
     <div className="flex items-center gap-2">
       <Label className="flex-1">{label}</Label>
       <Input
         type="number"
-        value={value || 0}
+        value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-20"
         min="0"
