@@ -10,12 +10,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { calculateInheritance } from '@/lib/inheritance-engine';
 import { FIQH_DATABASE, Madhab } from '@/lib/fiqh-database';
 import { exportToPDF, downloadCSV, downloadJSON, shareAsText } from '@/lib/pdf-export';
+import { compareAllMadhabs } from '@/lib/madhab-comparison';
+import type { MadhhabComparison } from '@/lib/madhab-comparison';
 import { ScenariosDialog } from '@/components/ScenariosDialog';
-import { AlertCircle, Calculator, Download, Printer, CheckCircle, FileText, Share2 } from 'lucide-react';
+import { MadhhabComparisonCard } from '@/components/MadhhabComparisonCard';
+import { AlertCircle, Calculator, Download, Printer, CheckCircle, FileText, Share2, Zap } from 'lucide-react';
 
 export default function Home() {
   // Local state for error handling and UI
   const [errors, setErrors] = useState<string[]>([]);
+  const [comparison, setComparison] = useState<MadhhabComparison | null>(null);
 
   // Store selectors
   const madhab = useAppStore((state) => state.madhab);
@@ -127,9 +131,33 @@ export default function Home() {
     }
   };
 
+  const handleComparison = async () => {
+    // Validate inputs first
+    const estateValidation = validateEstate(estate);
+    const heirsValidation = validateHeirs(heirs);
+
+    if (!estateValidation.success || !heirsValidation.success) {
+      setErrors(['يرجى إدخال بيانات صحيحة قبل المقارنة']);
+      return;
+    }
+
+    try {
+      setIsCalculating(true);
+      const result = compareAllMadhabs(estate, heirs);
+      setComparison(result);
+      setErrors([]);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ في المقارنة';
+      setErrors([`خطأ: ${errorMessage}`]);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
   const handleReset = () => {
     resetAll();
     setErrors([]);
+    setComparison(null);
   };
 
   const handleScenarioSelect = (state: { madhab: Madhab; estate: typeof estate; heirs: typeof heirs }) => {
@@ -311,12 +339,16 @@ export default function Home() {
             </Card>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button onClick={handleCalculate} disabled={isCalculating} className="flex-1" size="lg">
+            <div className="flex gap-3 flex-wrap">
+              <Button onClick={handleCalculate} disabled={isCalculating} className="flex-1 min-w-32" size="lg">
                 <Calculator className="mr-2 h-4 w-4" />
                 {isCalculating ? 'جاري الحساب...' : 'احسب الميراث'}
               </Button>
-              <Button onClick={handleReset} variant="outline" size="lg">
+              <Button onClick={handleComparison} disabled={isCalculating} variant="secondary" className="flex-1 min-w-32" size="lg">
+                <Zap className="mr-2 h-4 w-4" />
+                مقارنة المذاهب
+              </Button>
+              <Button onClick={handleReset} variant="outline" className="flex-1 min-w-32" size="lg">
                 إعادة تعيين
               </Button>
             </div>
@@ -404,6 +436,13 @@ export default function Home() {
                     <AlertDescription>{result.error}</AlertDescription>
                   </Alert>
                 )}
+              </div>
+            )}
+
+            {/* Comparison Panel */}
+            {comparison && (
+              <div className="space-y-4">
+                <MadhhabComparisonCard comparison={comparison} />
               </div>
             )}
           </div>
