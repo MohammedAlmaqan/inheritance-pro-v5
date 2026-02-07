@@ -15,6 +15,7 @@ import type { MadhhabComparison } from '@/lib/madhab-comparison';
 import { ScenariosDialog } from '@/components/ScenariosDialog';
 import { MadhhabComparisonCard } from '@/components/MadhhabComparisonCard';
 import { AlertCircle, Calculator, Download, Printer, CheckCircle, FileText, Share2, Zap } from 'lucide-react';
+import { createInputAriaAttributes, createButtonAriaAttributes, announceToScreenReader } from '@/lib/accessibility';
 
 export default function Home() {
   // Local state for error handling and UI
@@ -175,16 +176,17 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-2">نظام المواريث الإسلامية</h1>
-          <p className="text-lg text-slate-600">حاسبة دقيقة وشاملة لتوزيع الميراث وفقاً للمذاهب الفقهية الأربعة</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-2" id="page-title">نظام المواريث الإسلامية</h1>
+          <p className="text-lg text-slate-600" id="page-description">حاسبة دقيقة وشاملة لتوزيع الميراث وفقاً للمذاهب الفقهية الأربعة</p>
         </div>
 
         {/* Error Display */}
         {errors.length > 0 && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-6" role="alert" aria-live="polite" aria-labelledby="error-title">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <ul className="mt-2 space-y-1">
+              <h2 id="error-title" className="font-bold text-sm mb-2">الأخطاء:</h2>
+              <ul>
                 {errors.map((error: string, idx: number) => (
                   <li key={idx}>• {error}</li>
                 ))}
@@ -202,17 +204,23 @@ export default function Home() {
             {/* Madhab Selection */}
             <Card>
               <CardHeader>
-                <CardTitle>اختر المذهب الفقهي</CardTitle>
+                <CardTitle id="madhab-title">اختر المذهب الفقهي</CardTitle>
                 <CardDescription>اختر المذهب الذي تريد تطبيق أحكامه</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="madhab-title" aria-live="polite">
                   {Object.entries(FIQH_DATABASE.madhabs).map(([key, madhab_option]) => (
                     <Button
                       key={key}
                       variant={madhab_option.id === madhab ? 'default' : 'outline'}
                       className="text-right"
-                      onClick={() => setMadhab(madhab_option.id as Madhab)}
+                      onClick={() => {
+                        setMadhab(madhab_option.id as Madhab);
+                        announceToScreenReader(`تم تحديد المذهب: ${madhab_option.name}`);
+                      }}
+                      role="radio"
+                      aria-checked={madhab_option.id === madhab}
+                      aria-label={madhab_option.name}
                     >
                       <span className="mr-2">{madhab_option.icon}</span>
                       {madhab_option.name}
@@ -225,11 +233,11 @@ export default function Home() {
             {/* Estate Input */}
             <Card>
               <CardHeader>
-                <CardTitle>بيانات التركة</CardTitle>
+                <CardTitle id="estate-title">بيانات التركة</CardTitle>
                 <CardDescription>أدخل قيمة التركة والخصومات</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4" role="group" aria-labelledby="estate-title">
                   <div>
                     <Label htmlFor="total">إجمالي التركة</Label>
                     <Input
@@ -238,7 +246,10 @@ export default function Home() {
                       value={estate.total}
                       onChange={(e) => handleEstateChange('total', Number(e.target.value))}
                       className="mt-1"
+                      aria-describedby="total-help"
+                      inputMode="decimal"
                     />
+                    <small id="total-help" className="text-xs text-slate-500">ادخل المبلغ الكلي للتركة</small>
                   </div>
                   <div>
                     <Label htmlFor="funeral">تكاليف التجهيز</Label>
@@ -248,7 +259,10 @@ export default function Home() {
                       value={estate.funeral}
                       onChange={(e) => handleEstateChange('funeral', Number(e.target.value))}
                       className="mt-1"
+                      aria-describedby="funeral-help"
+                      inputMode="decimal"
                     />
+                    <small id="funeral-help" className="text-xs text-slate-500">تكاليف تجهيز الميت</small>
                   </div>
                   <div>
                     <Label htmlFor="debts">الديون</Label>
@@ -258,7 +272,10 @@ export default function Home() {
                       value={estate.debts}
                       onChange={(e) => handleEstateChange('debts', Number(e.target.value))}
                       className="mt-1"
+                      aria-describedby="debts-help"
+                      inputMode="decimal"
                     />
+                    <small id="debts-help" className="text-xs text-slate-500">الديون التي على المتوفى</small>
                   </div>
                   <div>
                     <Label htmlFor="will">الوصية</Label>
@@ -268,12 +285,15 @@ export default function Home() {
                       value={estate.will}
                       onChange={(e) => handleEstateChange('will', Number(e.target.value))}
                       className="mt-1"
+                      aria-describedby="will-help"
+                      inputMode="decimal"
                     />
+                    <small id="will-help" className="text-xs text-slate-500">قيمة الوصية اختياري</small>
                   </div>
                 </div>
-                <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="bg-blue-50 p-3 rounded-lg" aria-live="polite" aria-atomic="true">
                   <p className="text-sm text-slate-700">
-                    <strong>صافي التركة:</strong> {(estate.total - estate.funeral - estate.debts - estate.will).toLocaleString()} ريال
+                    <strong>صافي التركة:</strong> <span aria-label="صافي التركة">{(estate.total - estate.funeral - estate.debts - estate.will).toLocaleString()}</span> ريال
                   </p>
                 </div>
               </CardContent>
@@ -282,73 +302,94 @@ export default function Home() {
             {/* Heirs Input */}
             <Card>
               <CardHeader>
-                <CardTitle>الورثة</CardTitle>
+                <CardTitle id="heirs-title">الورثة</CardTitle>
                 <CardDescription>أدخل عدد الورثة في كل فئة</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="ascendants" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="ascendants">الأصول</TabsTrigger>
-                    <TabsTrigger value="descendants">الفروع</TabsTrigger>
-                    <TabsTrigger value="siblings">الإخوة</TabsTrigger>
-                    <TabsTrigger value="others">الآخرون</TabsTrigger>
+                <Tabs defaultValue="ascendants" className="w-full" aria-labelledby="heirs-title">
+                  <TabsList className="grid w-full grid-cols-4" role="tablist">
+                    <TabsTrigger value="ascendants" role="tab" aria-selected aria-controls="ascendants-content" id="ascendants-tab">الأصول</TabsTrigger>
+                    <TabsTrigger value="descendants" role="tab" aria-controls="descendants-content" id="descendants-tab">الفروع</TabsTrigger>
+                    <TabsTrigger value="siblings" role="tab" aria-controls="siblings-content" id="siblings-tab">الإخوة</TabsTrigger>
+                    <TabsTrigger value="others" role="tab" aria-controls="others-content" id="others-tab">الآخرون</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="ascendants" className="space-y-3 mt-4">
-                    <HeirInput label="الزوج" value={heirs.husband} onChange={(v) => handleHeirChange('husband', v)} />
-                    <HeirInput label="الزوجة" value={heirs.wife} onChange={(v) => handleHeirChange('wife', v)} />
-                    <HeirInput label="الأب" value={heirs.father} onChange={(v) => handleHeirChange('father', v)} />
-                    <HeirInput label="الأم" value={heirs.mother} onChange={(v) => handleHeirChange('mother', v)} />
-                    <HeirInput label="الجد" value={heirs.grandfather} onChange={(v) => handleHeirChange('grandfather', v)} />
-                    <HeirInput label="الجدة لأب" value={heirs.grandmother_father} onChange={(v) => handleHeirChange('grandmother_father', v)} />
-                    <HeirInput label="الجدة لأم" value={heirs.grandmother_mother} onChange={(v) => handleHeirChange('grandmother_mother', v)} />
+                  <TabsContent value="ascendants" className="space-y-3 mt-4" role="tabpanel" id="ascendants-content" aria-labelledby="ascendants-tab">
+                    <HeirInput label="الزوج" value={heirs.husband} onChange={(v) => handleHeirChange('husband', v)} id="heir-husband" />
+                    <HeirInput label="الزوجة" value={heirs.wife} onChange={(v) => handleHeirChange('wife', v)} id="heir-wife" />
+                    <HeirInput label="الأب" value={heirs.father} onChange={(v) => handleHeirChange('father', v)} id="heir-father" />
+                    <HeirInput label="الأم" value={heirs.mother} onChange={(v) => handleHeirChange('mother', v)} id="heir-mother" />
+                    <HeirInput label="الجد" value={heirs.grandfather} onChange={(v) => handleHeirChange('grandfather', v)} id="heir-grandfather" />
+                    <HeirInput label="الجدة لأب" value={heirs.grandmother_father} onChange={(v) => handleHeirChange('grandmother_father', v)} id="heir-grandmother-father" />
+                    <HeirInput label="الجدة لأم" value={heirs.grandmother_mother} onChange={(v) => handleHeirChange('grandmother_mother', v)} id="heir-grandmother-mother" />
                   </TabsContent>
 
-                  <TabsContent value="descendants" className="space-y-3 mt-4">
-                    <HeirInput label="الابن" value={heirs.son} onChange={(v) => handleHeirChange('son', v)} />
-                    <HeirInput label="البنت" value={heirs.daughter} onChange={(v) => handleHeirChange('daughter', v)} />
-                    <HeirInput label="ابن الابن" value={heirs.grandson} onChange={(v) => handleHeirChange('grandson', v)} />
-                    <HeirInput label="بنت الابن" value={heirs.granddaughter} onChange={(v) => handleHeirChange('granddaughter', v)} />
+                  <TabsContent value="descendants" className="space-y-3 mt-4" role="tabpanel" id="descendants-content" aria-labelledby="descendants-tab">
+                    <HeirInput label="الابن" value={heirs.son} onChange={(v) => handleHeirChange('son', v)} id="heir-son" />
+                    <HeirInput label="البنت" value={heirs.daughter} onChange={(v) => handleHeirChange('daughter', v)} id="heir-daughter" />
+                    <HeirInput label="ابن الابن" value={heirs.grandson} onChange={(v) => handleHeirChange('grandson', v)} id="heir-grandson" />
+                    <HeirInput label="بنت الابن" value={heirs.granddaughter} onChange={(v) => handleHeirChange('granddaughter', v)} id="heir-granddaughter" />
                   </TabsContent>
 
-                  <TabsContent value="siblings" className="space-y-3 mt-4">
-                    <HeirInput label="الأخ الشقيق" value={heirs.full_brother} onChange={(v) => handleHeirChange('full_brother', v)} />
-                    <HeirInput label="الأخت الشقيقة" value={heirs.full_sister} onChange={(v) => handleHeirChange('full_sister', v)} />
-                    <HeirInput label="الأخ لأب" value={heirs.paternal_brother} onChange={(v) => handleHeirChange('paternal_brother', v)} />
-                    <HeirInput label="الأخت لأب" value={heirs.paternal_sister} onChange={(v) => handleHeirChange('paternal_sister', v)} />
-                    <HeirInput label="الأخ لأم" value={heirs.maternal_brother} onChange={(v) => handleHeirChange('maternal_brother', v)} />
-                    <HeirInput label="الأخت لأم" value={heirs.maternal_sister} onChange={(v) => handleHeirChange('maternal_sister', v)} />
+                  <TabsContent value="siblings" className="space-y-3 mt-4" role="tabpanel" id="siblings-content" aria-labelledby="siblings-tab">
+                    <HeirInput label="الأخ الشقيق" value={heirs.full_brother} onChange={(v) => handleHeirChange('full_brother', v)} id="heir-full-brother" />
+                    <HeirInput label="الأخت الشقيقة" value={heirs.full_sister} onChange={(v) => handleHeirChange('full_sister', v)} id="heir-full-sister" />
+                    <HeirInput label="الأخ لأب" value={heirs.paternal_brother} onChange={(v) => handleHeirChange('paternal_brother', v)} id="heir-paternal-brother" />
+                    <HeirInput label="الأخت لأب" value={heirs.paternal_sister} onChange={(v) => handleHeirChange('paternal_sister', v)} id="heir-paternal-sister" />
+                    <HeirInput label="الأخ لأم" value={heirs.maternal_brother} onChange={(v) => handleHeirChange('maternal_brother', v)} id="heir-maternal-brother" />
+                    <HeirInput label="الأخت لأم" value={heirs.maternal_sister} onChange={(v) => handleHeirChange('maternal_sister', v)} id="heir-maternal-sister" />
                   </TabsContent>
 
-                  <TabsContent value="others" className="space-y-3 mt-4">
-                    <HeirInput label="ابن الأخ الشقيق" value={heirs.full_nephew} onChange={(v) => handleHeirChange('full_nephew', v)} />
-                    <HeirInput label="ابن الأخ لأب" value={heirs.paternal_nephew} onChange={(v) => handleHeirChange('paternal_nephew', v)} />
-                    <HeirInput label="العم الشقيق" value={heirs.full_uncle} onChange={(v) => handleHeirChange('full_uncle', v)} />
-                    <HeirInput label="العم لأب" value={heirs.paternal_uncle} onChange={(v) => handleHeirChange('paternal_uncle', v)} />
-                    <HeirInput label="ابن العم الشقيق" value={heirs.full_cousin} onChange={(v) => handleHeirChange('full_cousin', v)} />
-                    <HeirInput label="ابن العم لأب" value={heirs.paternal_cousin} onChange={(v) => handleHeirChange('paternal_cousin', v)} />
-                    <HeirInput label="الخال" value={heirs.maternal_uncle} onChange={(v) => handleHeirChange('maternal_uncle', v)} />
-                    <HeirInput label="الخالة" value={heirs.maternal_aunt} onChange={(v) => handleHeirChange('maternal_aunt', v)} />
-                    <HeirInput label="العمة" value={heirs.paternal_aunt} onChange={(v) => handleHeirChange('paternal_aunt', v)} />
-                    <HeirInput label="ابن البنت" value={heirs.daughter_son} onChange={(v) => handleHeirChange('daughter_son', v)} />
-                    <HeirInput label="بنت البنت" value={heirs.daughter_daughter} onChange={(v) => handleHeirChange('daughter_daughter', v)} />
-                    <HeirInput label="أولاد الأخت" value={heirs.sister_children ?? 0} onChange={(v) => handleHeirChange('sister_children', v)} />
+                  <TabsContent value="others" className="space-y-3 mt-4" role="tabpanel" id="others-content" aria-labelledby="others-tab">
+                    <HeirInput label="ابن الأخ الشقيق" value={heirs.full_nephew} onChange={(v) => handleHeirChange('full_nephew', v)} id="heir-full-nephew" />
+                    <HeirInput label="ابن الأخ لأب" value={heirs.paternal_nephew} onChange={(v) => handleHeirChange('paternal_nephew', v)} id="heir-paternal-nephew" />
+                    <HeirInput label="العم الشقيق" value={heirs.full_uncle} onChange={(v) => handleHeirChange('full_uncle', v)} id="heir-full-uncle" />
+                    <HeirInput label="العم لأب" value={heirs.paternal_uncle} onChange={(v) => handleHeirChange('paternal_uncle', v)} id="heir-paternal-uncle" />
+                    <HeirInput label="ابن العم الشقيق" value={heirs.full_cousin} onChange={(v) => handleHeirChange('full_cousin', v)} id="heir-full-cousin" />
+                    <HeirInput label="ابن العم لأب" value={heirs.paternal_cousin} onChange={(v) => handleHeirChange('paternal_cousin', v)} id="heir-paternal-cousin" />
+                    <HeirInput label="الخال" value={heirs.maternal_uncle} onChange={(v) => handleHeirChange('maternal_uncle', v)} id="heir-maternal-uncle" />
+                    <HeirInput label="الخالة" value={heirs.maternal_aunt} onChange={(v) => handleHeirChange('maternal_aunt', v)} id="heir-maternal-aunt" />
+                    <HeirInput label="العمة" value={heirs.paternal_aunt} onChange={(v) => handleHeirChange('paternal_aunt', v)} id="heir-paternal-aunt" />
+                    <HeirInput label="ابن البنت" value={heirs.daughter_son} onChange={(v) => handleHeirChange('daughter_son', v)} id="heir-daughter-son" />
+                    <HeirInput label="بنت البنت" value={heirs.daughter_daughter} onChange={(v) => handleHeirChange('daughter_daughter', v)} id="heir-daughter-daughter" />
+                    <HeirInput label="أولاد الأخت" value={heirs.sister_children ?? 0} onChange={(v) => handleHeirChange('sister_children', v)} id="heir-sister-children" />
                   </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 flex-wrap">
-              <Button onClick={handleCalculate} disabled={isCalculating} className="flex-1 min-w-32" size="lg">
+            <div className="flex gap-3 flex-wrap" role="group" aria-label="إجراءات الحساب والميراث">
+              <Button 
+                onClick={handleCalculate} 
+                disabled={isCalculating} 
+                className="flex-1 min-w-32" 
+                size="lg"
+                aria-busy={isCalculating}
+                aria-label={isCalculating ? "جاري حساب الميراث" : "احسب توزيع الميراث"}
+              >
                 <Calculator className="mr-2 h-4 w-4" />
                 {isCalculating ? 'جاري الحساب...' : 'احسب الميراث'}
               </Button>
-              <Button onClick={handleComparison} disabled={isCalculating} variant="secondary" className="flex-1 min-w-32" size="lg">
+              <Button 
+                onClick={handleComparison} 
+                disabled={isCalculating} 
+                variant="secondary" 
+                className="flex-1 min-w-32" 
+                size="lg"
+                aria-busy={isCalculating}
+                aria-label="مقارنة التوزيع بين المذاهب الشرعية"
+              >
                 <Zap className="mr-2 h-4 w-4" />
                 مقارنة المذاهب
               </Button>
-              <Button onClick={handleReset} variant="outline" className="flex-1 min-w-32" size="lg">
+              <Button 
+                onClick={handleReset} 
+                variant="outline" 
+                className="flex-1 min-w-32" 
+                size="lg"
+                aria-label="إعادة تعيين جميع البيانات"
+              >
                 إعادة تعيين
               </Button>
             </div>
@@ -365,42 +406,46 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-5 w-5 text-green-600" />
                           <div>
-                            <CardTitle>النتائج</CardTitle>
+                            <CardTitle id="results-title">النتائج</CardTitle>
                             <CardDescription>{result.madhhabName}</CardDescription>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div className="bg-white p-3 rounded-lg border border-green-200">
-                          <p className="text-sm text-slate-600">صافي التركة</p>
-                          <p className="text-2xl font-bold text-green-700">{result.netEstate.toLocaleString()}</p>
+                        <div className="bg-white p-3 rounded-lg border border-green-200" role="region" aria-labelledby="net-estate-label">
+                          <p className="text-sm text-slate-600" id="net-estate-label">صافي التركة</p>
+                          <p className="text-2xl font-bold text-green-700" aria-live="polite">
+                            {result.netEstate.toLocaleString()} ريال
+                          </p>
                         </div>
 
                         <div className="space-y-2">
-                          <h3 className="font-semibold text-slate-900">توزيع الحصص:</h3>
-                          <div className="space-y-2 max-h-96 overflow-y-auto">
+                          <h3 className="font-semibold text-slate-900" id="shares-title">توزيع الحصص:</h3>
+                          <div className="space-y-2 max-h-96 overflow-y-auto" role="list" aria-labelledby="shares-title">
                             {result.shares.map((share: any, idx: number) => (
-                              <div key={idx} className="bg-white p-2 rounded text-sm border border-green-100">
+                              <div key={idx} className="bg-white p-2 rounded text-sm border border-green-100" role="listitem">
                                 <div className="flex justify-between mb-1">
                                   <span className="font-medium">{share.name}</span>
-                                  <span className="text-green-600">{(share.fraction.toDecimal() * 100).toFixed(2)}%</span>
+                                  <span className="text-green-600" aria-label={`${share.name}: ${(share.fraction.toDecimal() * 100).toFixed(2)} في المائة`}>
+                                    {(share.fraction.toDecimal() * 100).toFixed(2)}%
+                                  </span>
                                 </div>
-                              <div className="text-xs text-slate-600">
-                                المبلغ: {(share.amount || 0).toLocaleString()} ريال
-                              </div>
-                              {share.count > 1 && (
                                 <div className="text-xs text-slate-600">
-                                  للفرد: {(share.amountPerPerson || 0).toLocaleString()} ريال
+                                  المبلغ: {(share.amount || 0).toLocaleString()} ريال
                                 </div>
-                              )}
+                                {share.count > 1 && (
+                                  <div className="text-xs text-slate-600">
+                                    للفرد: {(share.amountPerPerson || 0).toLocaleString()} ريال
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
                         </div>
 
                         {result.specialCases && result.specialCases.length > 0 && (
-                          <div className="bg-white p-3 rounded-lg border border-green-100">
-                            <h4 className="font-semibold text-slate-900 mb-2">حالات خاصة:</h4>
+                          <div className="bg-white p-3 rounded-lg border border-green-100" role="note" aria-labelledby="special-cases-title">
+                            <h4 className="font-semibold text-slate-900 mb-2" id="special-cases-title">حالات خاصة:</h4>
                             <ul className="text-sm text-slate-700 space-y-1">
                               {result.specialCases.map((c: any, idx: number) => (
                                 <li key={idx}>• {c.name}: {c.description}</li>
@@ -409,20 +454,44 @@ export default function Home() {
                           </div>
                         )}
 
-                        <div className="flex gap-2 flex-wrap">
-                          <Button onClick={handlePrint} variant="outline" size="sm" className="flex-1 min-w-20">
+                        <div className="flex gap-2 flex-wrap" role="group" aria-label="خيارات تحميل ومشاركة النتائج">
+                          <Button 
+                            onClick={handlePrint} 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 min-w-20"
+                            aria-label="طباعة نتائج الحساب"
+                          >
                             <Printer className="mr-2 h-4 w-4" />
                             طباعة
                           </Button>
-                          <Button onClick={handleDownloadCSV} variant="outline" size="sm" className="flex-1 min-w-20">
+                          <Button 
+                            onClick={handleDownloadCSV} 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 min-w-20"
+                            aria-label="تحميل النتائج كملف CSV"
+                          >
                             <Download className="mr-2 h-4 w-4" />
                             CSV
                           </Button>
-                          <Button onClick={handleDownloadJSON} variant="outline" size="sm" className="flex-1 min-w-20">
+                          <Button 
+                            onClick={handleDownloadJSON} 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 min-w-20"
+                            aria-label="تحميل النتائج كملف JSON"
+                          >
                             <FileText className="mr-2 h-4 w-4" />
                             JSON
                           </Button>
-                          <Button onClick={handleShare} variant="outline" size="sm" className="flex-1 min-w-20">
+                          <Button 
+                            onClick={handleShare} 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 min-w-20"
+                            aria-label="مشاركة النتائج"
+                          >
                             <Share2 className="mr-2 h-4 w-4" />
                             مشاركة
                           </Button>
@@ -431,9 +500,9 @@ export default function Home() {
                     </Card>
                   </>
                 ) : (
-                  <Alert variant="destructive">
+                  <Alert variant="destructive" role="alert" aria-labelledby="error-result-title">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{result.error}</AlertDescription>
+                    <AlertDescription id="error-result-title">{result.error}</AlertDescription>
                   </Alert>
                 )}
               </div>
@@ -441,7 +510,8 @@ export default function Home() {
 
             {/* Comparison Panel */}
             {comparison && (
-              <div className="space-y-4">
+              <div className="space-y-4" role="region" aria-labelledby="comparison-title">
+                <div id="comparison-title" className="sr-only">نتائج المقارنة بين المذاهب</div>
                 <MadhhabComparisonCard comparison={comparison} />
               </div>
             )}
@@ -452,16 +522,19 @@ export default function Home() {
   );
 }
 
-function HeirInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function HeirInput({ label, value, onChange, id }: { label: string; value: number; onChange: (v: number) => void; id?: string }) {
   return (
     <div className="flex items-center gap-2">
-      <Label className="flex-1">{label}</Label>
+      <Label htmlFor={id} className="flex-1">{label}</Label>
       <Input
+        id={id}
         type="number"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-20"
         min="0"
+        inputMode="decimal"
+        aria-label={label}
       />
     </div>
   );
