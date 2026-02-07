@@ -21,7 +21,7 @@ import {
   debounce,
   createTooltipAriaAttributes,
   isVisibleToScreenReaders,
-} from '@/lib/accessibility';
+} from './accessibility';
 
 describe('Accessibility Utilities', () => {
   let container: HTMLElement;
@@ -373,7 +373,7 @@ describe('Accessibility Utilities', () => {
 
       const result = validateSemanticHTML(container);
       expect(result.valid).toBe(false);
-      expect(result.issues.some((issue) => issue.includes('jumped'))).toBe(true);
+      expect(result.issues.some((issue: string) => issue.includes('jumped'))).toBe(true);
     });
 
     it('should flag when page does not start with h1', () => {
@@ -384,7 +384,7 @@ describe('Accessibility Utilities', () => {
 
       const result = validateSemanticHTML(container);
       expect(result.valid).toBe(false);
-      expect(result.issues.some((issue) => issue.includes('h1'))).toBe(true);
+      expect(result.issues.some((issue: string) => issue.includes('h1'))).toBe(true);
     });
 
     it('should flag images without alt text', () => {
@@ -392,42 +392,42 @@ describe('Accessibility Utilities', () => {
 
       const result = validateSemanticHTML(container);
       expect(result.valid).toBe(false);
-      expect(result.issues.some((issue) => issue.includes('alt text'))).toBe(true);
+      expect(result.issues.some((issue: string) => issue.includes('alt text'))).toBe(true);
     });
 
     it('should allow images with alt text', () => {
       container.innerHTML = `<img src="test.jpg" alt="Test image" />`;
 
       const result = validateSemanticHTML(container);
-      expect(result.issues.some((issue) => issue.includes('alt text'))).toBe(false);
+      expect(result.issues.some((issue: string) => issue.includes('alt text'))).toBe(false);
     });
 
     it('should flag form inputs without labels', () => {
       container.innerHTML = `<input type="text" />`;
 
       const result = validateSemanticHTML(container);
-      expect(result.issues.some((issue) => issue.includes('labels'))).toBe(true);
+      expect(result.issues.some((issue: string) => issue.includes('labels'))).toBe(true);
     });
 
     it('should allow inputs with aria-label', () => {
       container.innerHTML = `<input type="text" aria-label="Name" />`;
 
       const result = validateSemanticHTML(container);
-      expect(result.issues.some((issue) => issue.includes('without labels'))).toBe(false);
+      expect(result.issues.some((issue: string) => issue.includes('without labels'))).toBe(false);
     });
 
     it('should flag buttons without text', () => {
       container.innerHTML = `<button></button>`;
 
       const result = validateSemanticHTML(container);
-      expect(result.issues.some((issue) => issue.includes('without accessible names'))).toBe(true);
+      expect(result.issues.some((issue: string) => issue.includes('without accessible names'))).toBe(true);
     });
 
     it('should allow buttons with text', () => {
       container.innerHTML = `<button>Click</button>`;
 
       const result = validateSemanticHTML(container);
-      expect(result.issues.some((issue) => issue.includes('without accessible names'))).toBe(false);
+      expect(result.issues.some((issue: string) => issue.includes('without accessible names'))).toBe(false);
     });
 
     it('should allow inputs with labels by id', () => {
@@ -437,7 +437,7 @@ describe('Accessibility Utilities', () => {
       `;
 
       const result = validateSemanticHTML(container);
-      expect(result.issues.some((issue) => issue.includes('without labels'))).toBe(false);
+      expect(result.issues.some((issue: string) => issue.includes('without labels'))).toBe(false);
     });
   });
 

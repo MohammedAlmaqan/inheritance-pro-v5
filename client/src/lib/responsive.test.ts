@@ -28,7 +28,7 @@ import {
   shouldHideOnMobile,
   shouldHideOnDesktop,
   getMaxContainerWidth,
-} from '@/lib/responsive';
+} from './responsive';
 
 describe('Responsive Utilities', () => {
   // Breakpoints Tests
@@ -43,7 +43,7 @@ describe('Responsive Utilities', () => {
     });
 
     it('should have breakpoints in ascending order', () => {
-      const values = Object.values(BREAKPOINTS);
+      const values = Object.values(BREAKPOINTS) as number[];
       for (let i = 1; i < values.length; i++) {
         expect(values[i]).toBeGreaterThan(values[i - 1]);
       }
