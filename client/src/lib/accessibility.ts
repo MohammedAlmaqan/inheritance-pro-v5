@@ -7,12 +7,14 @@
  * Generate ARIA attributes for screen readers
  */
 export interface AriaAttributes {
+  [key: string]: string | number | boolean | undefined;
   'aria-label'?: string;
   'aria-describedby'?: string;
   'aria-expanded'?: boolean;
   'aria-selected'?: boolean;
   'aria-disabled'?: boolean;
   'aria-checked'?: boolean;
+  'aria-pressed'?: boolean;
   'aria-current'?: 'page' | 'step' | 'location' | 'date' | 'time' | true | false;
   'aria-live'?: 'off' | 'polite' | 'assertive';
   'aria-atomic'?: boolean;
@@ -32,6 +34,7 @@ export interface AriaAttributes {
   'aria-labelledby'?: string;
   role?: string;
   tabIndex?: number;
+  id?: string;
 }
 
 /**
@@ -193,7 +196,7 @@ export function getFocusableElements(container: HTMLElement | null): HTMLElement
     '[role="menuitem"]:not([aria-disabled="true"])',
   ].join(', ');
 
-  const elements = Array.from(container.querySelectorAll(focusableSelector));
+  const elements = Array.from(container.querySelectorAll(focusableSelector)) as HTMLElement[];
   
   // Filter out elements with tabindex="-1"
   return elements.filter((el) => {

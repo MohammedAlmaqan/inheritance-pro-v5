@@ -64,8 +64,8 @@ export function useKeyboardNavigation(options: UseKeyboardNavigationOptions) {
       }
     };
 
-    element.addEventListener('keydown', handleKeyDown);
-    return () => element.removeEventListener('keydown', handleKeyDown);
+    element.addEventListener('keydown', handleKeyDown as EventListener);
+    return () => element.removeEventListener('keydown', handleKeyDown as EventListener);
   }, [options]);
 
   return ref;
@@ -90,7 +90,7 @@ export function useFocusManagement(options: {
       element.querySelectorAll(
         'button:not([disabled]), a[href], [role="button"]:not([aria-disabled="true"])',
       ),
-    );
+    ) as HTMLElement[];
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const isVertical = options.direction !== 'horizontal';
@@ -123,8 +123,8 @@ export function useFocusManagement(options: {
       }
     };
 
-    element.addEventListener('keydown', handleKeyDown);
-    return () => element.removeEventListener('keydown', handleKeyDown);
+    element.addEventListener('keydown', handleKeyDown as EventListener);
+    return () => element.removeEventListener('keydown', handleKeyDown as EventListener);
   }, [options]);
 
   return ref;
@@ -145,9 +145,10 @@ export function useEscapeKey(
 
     const target = options.target || window;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
+    const handleKeyDown = (e: Event) => {
+      const keyEvent = e as KeyboardEvent;
+      if (keyEvent.key === 'Escape') {
+        keyEvent.preventDefault();
         onEscape();
       }
     };
@@ -234,9 +235,10 @@ export function useActivation(
     const element = ref.current;
     if (!element || options.enabled === false) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
+    const handleKeyDown = (e: Event) => {
+      const keyEvent = e as KeyboardEvent;
+      if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+        keyEvent.preventDefault();
         onActivate();
       }
     };
