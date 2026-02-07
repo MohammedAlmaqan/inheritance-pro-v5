@@ -16,6 +16,7 @@ import { ScenariosDialog } from '@/components/ScenariosDialog';
 import { MadhhabComparisonCard } from '@/components/MadhhabComparisonCard';
 import { AlertCircle, Calculator, Download, Printer, CheckCircle, FileText, Share2, Zap } from 'lucide-react';
 import { createInputAriaAttributes, createButtonAriaAttributes, announceToScreenReader } from '@/lib/accessibility';
+import { usePreventBodyScroll } from '@/hooks/useKeyboardNavigation';
 
 export default function Home() {
   // Local state for error handling and UI
@@ -172,21 +173,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-2" id="page-title">نظام المواريث الإسلامية</h1>
-          <p className="text-lg text-slate-600" id="page-description">حاسبة دقيقة وشاملة لتوزيع الميراث وفقاً للمذاهب الفقهية الأربعة</p>
+        <div className="text-center mb-6 sm:mb-8 lg:mb-10">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-2" id="page-title">نظام المواريث الإسلامية</h1>
+          <p className="text-base sm:text-lg text-slate-600 px-2 sm:px-0" id="page-description">حاسبة دقيقة وشاملة لتوزيع الميراث وفقاً للمذاهب الفقهية الأربعة</p>
         </div>
 
         {/* Error Display */}
         {errors.length > 0 && (
-          <Alert variant="destructive" className="mb-6" role="alert" aria-live="polite" aria-labelledby="error-title">
-            <AlertCircle className="h-4 w-4" />
+          <Alert variant="destructive" className="mb-4 sm:mb-6" role="alert" aria-live="polite" aria-labelledby="error-title">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <AlertDescription>
               <h2 id="error-title" className="font-bold text-sm mb-2">الأخطاء:</h2>
-              <ul>
+              <ul className="space-y-1">
                 {errors.map((error: string, idx: number) => (
                   <li key={idx}>• {error}</li>
                 ))}
@@ -208,12 +209,12 @@ export default function Home() {
                 <CardDescription>اختر المذهب الذي تريد تطبيق أحكامه</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="madhab-title" aria-live="polite">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3" role="radiogroup" aria-labelledby="madhab-title" aria-live="polite">
                   {Object.entries(FIQH_DATABASE.madhabs).map(([key, madhab_option]) => (
                     <Button
                       key={key}
                       variant={madhab_option.id === madhab ? 'default' : 'outline'}
-                      className="text-right"
+                      className="text-right text-sm sm:text-base h-10 sm:h-11"
                       onClick={() => {
                         setMadhab(madhab_option.id as Madhab);
                         announceToScreenReader(`تم تحديد المذهب: ${madhab_option.name}`);
@@ -222,8 +223,9 @@ export default function Home() {
                       aria-checked={madhab_option.id === madhab}
                       aria-label={madhab_option.name}
                     >
-                      <span className="mr-2">{madhab_option.icon}</span>
-                      {madhab_option.name}
+                      <span className="mr-1 sm:mr-2 text-lg">{madhab_option.icon}</span>
+                      <span className="hidden sm:inline">{madhab_option.name}</span>
+                      <span className="sm:hidden text-xs">{madhab_option.name.split(' ')[0]}</span>
                     </Button>
                   ))}
                 </div>
@@ -236,63 +238,63 @@ export default function Home() {
                 <CardTitle id="estate-title">بيانات التركة</CardTitle>
                 <CardDescription>أدخل قيمة التركة والخصومات</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4" role="group" aria-labelledby="estate-title">
+              <CardContent className="space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4" role="group" aria-labelledby="estate-title">
                   <div>
-                    <Label htmlFor="total">إجمالي التركة</Label>
+                    <Label htmlFor="total" className="text-sm sm:text-base">إجمالي التركة</Label>
                     <Input
                       id="total"
                       type="number"
                       value={estate.total}
                       onChange={(e) => handleEstateChange('total', Number(e.target.value))}
-                      className="mt-1"
+                      className="mt-1 h-10 sm:h-11"
                       aria-describedby="total-help"
                       inputMode="decimal"
                     />
                     <small id="total-help" className="text-xs text-slate-500">ادخل المبلغ الكلي للتركة</small>
                   </div>
                   <div>
-                    <Label htmlFor="funeral">تكاليف التجهيز</Label>
+                    <Label htmlFor="funeral" className="text-sm sm:text-base">تكاليف التجهيز</Label>
                     <Input
                       id="funeral"
                       type="number"
                       value={estate.funeral}
                       onChange={(e) => handleEstateChange('funeral', Number(e.target.value))}
-                      className="mt-1"
+                      className="mt-1 h-10 sm:h-11"
                       aria-describedby="funeral-help"
                       inputMode="decimal"
                     />
                     <small id="funeral-help" className="text-xs text-slate-500">تكاليف تجهيز الميت</small>
                   </div>
                   <div>
-                    <Label htmlFor="debts">الديون</Label>
+                    <Label htmlFor="debts" className="text-sm sm:text-base">الديون</Label>
                     <Input
                       id="debts"
                       type="number"
                       value={estate.debts}
                       onChange={(e) => handleEstateChange('debts', Number(e.target.value))}
-                      className="mt-1"
+                      className="mt-1 h-10 sm:h-11"
                       aria-describedby="debts-help"
                       inputMode="decimal"
                     />
                     <small id="debts-help" className="text-xs text-slate-500">الديون التي على المتوفى</small>
                   </div>
                   <div>
-                    <Label htmlFor="will">الوصية</Label>
+                    <Label htmlFor="will" className="text-sm sm:text-base">الوصية</Label>
                     <Input
                       id="will"
                       type="number"
                       value={estate.will}
                       onChange={(e) => handleEstateChange('will', Number(e.target.value))}
-                      className="mt-1"
+                      className="mt-1 h-10 sm:h-11"
                       aria-describedby="will-help"
                       inputMode="decimal"
                     />
                     <small id="will-help" className="text-xs text-slate-500">قيمة الوصية اختياري</small>
                   </div>
                 </div>
-                <div className="bg-blue-50 p-3 rounded-lg" aria-live="polite" aria-atomic="true">
-                  <p className="text-sm text-slate-700">
+                <div className="bg-blue-50 p-2 sm:p-3 rounded-lg" aria-live="polite" aria-atomic="true">
+                  <p className="text-xs sm:text-sm text-slate-700">
                     <strong>صافي التركة:</strong> <span aria-label="صافي التركة">{(estate.total - estate.funeral - estate.debts - estate.will).toLocaleString()}</span> ريال
                   </p>
                 </div>
@@ -359,34 +361,34 @@ export default function Home() {
             </Card>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 flex-wrap" role="group" aria-label="إجراءات الحساب والميراث">
+            <div className="flex gap-2 sm:gap-3 flex-wrap" role="group" aria-label="إجراءات الحساب والميراث">
               <Button 
                 onClick={handleCalculate} 
                 disabled={isCalculating} 
-                className="flex-1 min-w-32" 
+                className="flex-1 min-w-[120px] sm:min-w-32 h-11 sm:h-12 text-sm sm:text-base" 
                 size="lg"
                 aria-busy={isCalculating}
                 aria-label={isCalculating ? "جاري حساب الميراث" : "احسب توزيع الميراث"}
               >
-                <Calculator className="mr-2 h-4 w-4" />
+                <Calculator className="mr-2 h-4 w-4 flex-shrink-0" />
                 {isCalculating ? 'جاري الحساب...' : 'احسب الميراث'}
               </Button>
               <Button 
                 onClick={handleComparison} 
                 disabled={isCalculating} 
                 variant="secondary" 
-                className="flex-1 min-w-32" 
+                className="flex-1 min-w-[120px] sm:min-w-32 h-11 sm:h-12 text-sm sm:text-base" 
                 size="lg"
                 aria-busy={isCalculating}
                 aria-label="مقارنة التوزيع بين المذاهب الشرعية"
               >
-                <Zap className="mr-2 h-4 w-4" />
+                <Zap className="mr-2 h-4 w-4 flex-shrink-0" />
                 مقارنة المذاهب
               </Button>
               <Button 
                 onClick={handleReset} 
                 variant="outline" 
-                className="flex-1 min-w-32" 
+                className="flex-1 min-w-[120px] sm:min-w-32 h-11 sm:h-12" 
                 size="lg"
                 aria-label="إعادة تعيين جميع البيانات"
               >
@@ -454,45 +456,45 @@ export default function Home() {
                           </div>
                         )}
 
-                        <div className="flex gap-2 flex-wrap" role="group" aria-label="خيارات تحميل ومشاركة النتائج">
+                        <div className="flex gap-1 sm:gap-2 flex-wrap" role="group" aria-label="خيارات تحميل ومشاركة النتائج">
                           <Button 
                             onClick={handlePrint} 
                             variant="outline" 
                             size="sm" 
-                            className="flex-1 min-w-20"
+                            className="flex-1 min-w-[100px] sm:min-w-20 h-10 sm:h-11 text-xs sm:text-sm"
                             aria-label="طباعة نتائج الحساب"
                           >
-                            <Printer className="mr-2 h-4 w-4" />
+                            <Printer className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                             طباعة
                           </Button>
                           <Button 
                             onClick={handleDownloadCSV} 
                             variant="outline" 
                             size="sm" 
-                            className="flex-1 min-w-20"
+                            className="flex-1 min-w-[100px] sm:min-w-20 h-10 sm:h-11 text-xs sm:text-sm"
                             aria-label="تحميل النتائج كملف CSV"
                           >
-                            <Download className="mr-2 h-4 w-4" />
+                            <Download className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                             CSV
                           </Button>
                           <Button 
                             onClick={handleDownloadJSON} 
                             variant="outline" 
                             size="sm" 
-                            className="flex-1 min-w-20"
+                            className="flex-1 min-w-[100px] sm:min-w-20 h-10 sm:h-11 text-xs sm:text-sm"
                             aria-label="تحميل النتائج كملف JSON"
                           >
-                            <FileText className="mr-2 h-4 w-4" />
+                            <FileText className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                             JSON
                           </Button>
                           <Button 
                             onClick={handleShare} 
                             variant="outline" 
                             size="sm" 
-                            className="flex-1 min-w-20"
+                            className="flex-1 min-w-[100px] sm:min-w-20 h-10 sm:h-11 text-xs sm:text-sm"
                             aria-label="مشاركة النتائج"
                           >
-                            <Share2 className="mr-2 h-4 w-4" />
+                            <Share2 className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                             مشاركة
                           </Button>
                         </div>
