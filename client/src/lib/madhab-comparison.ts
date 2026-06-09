@@ -25,7 +25,52 @@ export interface MadhhabComparison {
 }
 
 /**
- * Compare inheritance calculations across all 4 madhabs
+ * Compare inheritance calculations across all 4 Islamic madhabs (schools of law)
+ * 
+ * Runs the inheritance calculation for the same estate and heirs data using all 4 madhabs
+ * (Hanafi, Maliki, Shafi'i, Hanbali) and compares the results to identify differences
+ * in inheritance distributions and special cases applied.
+ * 
+ * @param estate - Estate data (total, funeral costs, debts, wills)
+ * @param heirs - Heir data (count of each heir type)
+ * 
+ * @returns MadhhabComparison object containing:
+ *   - madhabs: Individual calculation results for each of the 4 schools
+ *   - consistent: Boolean indicating if all madhabs produce same distribution
+ *   - differences: Array of heir distributions that differ between madhabs
+ * 
+ * @example
+ * ```typescript
+ * const comparison = compareAllMadhabs(
+ *   { total: 100000, funeral: 0, debts: 0, will: 0 },
+ *   { mother: 1, father: 1, son: 1, daughter: 1, ... }
+ * );
+ * 
+ * // Access individual results
+ * console.log('Hanafi result:', comparison.madhabs.hanafi);
+ * console.log('Maliki result:', comparison.madhabs.maliki);
+ * 
+ * // Check differences
+ * if (comparison.differences.length > 0) {
+ *   comparison.differences.forEach(diff => {
+ *     console.log(`Different results for ${diff.heir} between madhabs`);
+ *   });
+ * }
+ * ```
+ * 
+ * @remarks
+ * Key differences between madhabs:
+ * - **Grandfather with siblings**: Hanafi/Shafi'i/Hanbali block siblings; Maliki shares with them
+ * - **Radd (return)**: Hanafi includes spouses in radd; Maliki excludes them
+ * - **Blood relatives**: Different madhabs have different rules for distant relatives
+ * - **Musharaka**: Maliki applies partnership rules that others don't
+ * 
+ * This function is useful for:
+ * - Educational purposes: Explaining madhab differences
+ * - Professional use: Offering clients comparison of options
+ * - Validation: Cross-checking calculations
+ * 
+ * @since v5.0
  */
 export function compareAllMadhabs(
   estate: EstateData,

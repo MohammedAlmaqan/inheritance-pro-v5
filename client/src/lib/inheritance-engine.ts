@@ -1270,7 +1270,47 @@ class InheritanceEngine {
 }
 
 /**
- * دالة الحساب الرئيسية
+ * Calculate Islamic inheritance distribution according to a specific madhab
+ * 
+ * Main entry point for the inheritance calculation engine. Processes estate and heir data
+ * according to Islamic jurisprudence rules of the specified madhab (school of law).
+ * 
+ * @param madhab - Islamic school of jurisprudence ('hanafi' | 'maliki' | 'shafii' | 'hanbali')
+ * @param estate - Estate data including total value, deductions (funeral, debts, will)
+ * @param heirs - Heir data containing count of each heir type (26+ different types supported)
+ * 
+ * @returns CalculationResult containing:
+ *   - success: boolean indicating calculation success
+ *   - shares: Array of heir shares with amounts and fractions
+ *   - blockedHeirs: List of heirs blocked from inheritance and reasons
+ *   - specialCases: Applied special cases (awl, radd, etc.)
+ *   - steps: Detailed calculation steps for transparency
+ *   - warnings: Any warnings or notes about the calculation
+ *   - madhhabNotes: Madhab-specific notes and rules applied
+ * 
+ * @example
+ * ```typescript
+ * const result = calculateInheritance('hanafi', 
+ *   { total: 100000, funeral: 0, debts: 0, will: 0 },
+ *   { father: 1, son: 1, ... }
+ * );
+ * if (result.success) {
+ *   result.shares.forEach(share => {
+ *     console.log(`${share.name}: ${share.amount} (${share.fraction.toString()})`);
+ *   });
+ * }
+ * ```
+ * 
+ * @remarks
+ * - Supports all 4 Islamic schools (madhabs) with different inheritance rules
+ * - Handles complex scenarios: awl (inflation), radd (return), blocking rules
+ * - Uses Fraction class for precise mathematical calculations
+ * - Provides detailed calculation steps for transparency and education
+ * - Fully compliant with Islamic jurisprudence rules
+ * 
+ * @throws No exceptions - errors are returned in the CalculationResult object
+ * 
+ * @since v5.0
  */
 export function calculateInheritance(
   madhab: Madhab,

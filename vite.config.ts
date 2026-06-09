@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import visualizer from "rollup-plugin-visualizer";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -150,7 +151,20 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusRuntime(),
+  vitePluginManusDebugCollector(),
+  // Bundle analysis plugin - generates HTML report of bundle composition
+  visualizer({
+    filename: "dist/public/bundle-analysis.html",
+    open: false,
+    gzipSize: true,
+    brotliSize: true,
+  }),
+];
 
 export default defineConfig({
   plugins,
@@ -166,6 +180,66 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Optimize for production
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true,
+      },
+      mangle: true,
+    },
+    // Enable source maps for error tracking (can be disabled for size)
+    sourcemap: "hidden",
+    // Code splitting for better caching
+    rollupOptions: {
+      output: {
+        // Manual chunks for optimal code splitting
+        manualChunks: {
+          // UI library as separate chunk
+          "ui-radix": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-accordion",
+          ],
+          // Animation library
+          "animation-framer": ["framer-motion"],
+          // Data visualization
+          "charts-recharts": ["recharts"],
+          // Forms and validation
+          "forms-validation": [
+            "react-hook-form",
+            "zod",
+            "@hookform/resolvers",
+          ],
+          // Routing
+          routing: ["wouter"],
+          // State management
+          state: ["zustand", "next-themes"],
+        },
+        // Optimize chunk names
+        chunkFileNames: "js/[name]-[hash].js",
+        entryFileNames: "js/[name]-[hash].js",
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name.split(".");
+          const ext = info[info.length - 1];
+          if (/png|jpe?g|gif|svg|webp/.test(ext)) {
+            return `images/[name]-[hash][extname]`;
+          } else if (/woff|woff2|eot|ttf|otf/.test(ext)) {
+            return `fonts/[name]-[hash][extname]`;
+          } else if (ext === "css") {
+            return `css/[name]-[hash][extname]`;
+          }
+          return `[name]-[hash][extname]`;
+        },
+      },
+    },
+    // Chunk size warnings
+    chunkSizeWarningLimit: 500,
+    // Reporting
+    reportCompressedSize: true,
   },
   server: {
     port: 3000,
