@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5     # Updated to v5 for Node.js 24 support
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5   # Updated to v5 for Node.js 24 support
         with:
           node-version: 22
 
@@ -28,13 +28,13 @@ jobs:
         run: pnpm build
 
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5   # Updated to v5 for Node.js 24 support
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4   # Updated to v4 for Node.js 24 support
         with:
           packages: 'platforms;android-33 build-tools;33.0.0'
 
